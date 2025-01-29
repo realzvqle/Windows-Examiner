@@ -1,6 +1,4 @@
 #include "menu.h"
-#include "../../drawing/drawing.h"
-#include "../../abstractions/winapiabs.h"
 #include "../../abstractions/rayguiabs.h"
 #include "../../dialogs/run/run.h"
 #include "../../dialogs/power/power.h"
