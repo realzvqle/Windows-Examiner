@@ -2,7 +2,7 @@ set_project("winexamine")
 
 set_xmakever("2.6.0")
 
-set_languages("c11")
+set_languages("c99")
 
 target("winexamine")
     set_kind("binary")  

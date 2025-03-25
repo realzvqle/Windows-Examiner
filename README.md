@@ -12,7 +12,6 @@ open x64 Native Tools Command Prompt for VS 2022, go to the directory with the c
 
 
 
-
 # Using it
 
 This is prerelease software so it won't be fully finished
