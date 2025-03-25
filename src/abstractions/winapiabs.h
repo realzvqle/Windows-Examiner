@@ -11,5 +11,5 @@
 int SimpleMessageBox(LPCWSTR text, UINT uType);
 void ShowFailureResponse(DWORD errorCode);
 BOOL GivePowerPermissions();
-
+BOOL GiveProcessPermissions();
 #endif

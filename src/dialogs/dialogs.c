@@ -5,7 +5,7 @@
 
 
 
-uint8_t currentdialog = 0;
+static uint8_t currentdialog = 0;
 
 
 
@@ -18,7 +18,7 @@ uint8_t GetCurrentDialogState(){
 }
 
 void DrawAllDialogs(){
-    switch(currentdialog){
+    switch(GetCurrentDialogState()){
         case 0:
             break;
         case 1:

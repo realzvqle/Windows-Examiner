@@ -20,9 +20,6 @@ void InsDrawText(const char* text, float posX, float posY, float size, Color col
     DrawTextEx(font, text, vec, size, 2, color);
 }
 
-
-
-
 void CloseDrawings(){
     UnloadFont(font);
 }

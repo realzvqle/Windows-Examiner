@@ -40,3 +40,15 @@ BOOL GivePowerPermissions(){
     CloseHandle(hToken);
     return TRUE;
 }
+
+BOOL GiveProcessPermissions(){
+    HANDLE hToken;
+    TOKEN_PRIVILEGES tp;
+    LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tp.Privileges[0].Luid);
+    tp.PrivilegeCount = 1;
+    tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+    OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken);
+    AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL);
+    CloseHandle(hToken);
+    return TRUE;
+}

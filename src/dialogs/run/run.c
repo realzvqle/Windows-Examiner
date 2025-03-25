@@ -22,9 +22,8 @@ void DrawRunDialogBox() {
     static BOOL trustedInstaRun = FALSE;
     Rectangle dialogBox = { 0, 0, 500, 250 };
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLACK);
-    DrawRectangleRec(dialogBox, RAYWHITE);
-    DrawRectangleLinesEx(dialogBox, 3, BLACK);
-    
+    int winstate = RayGUIDrawDialogRec(dialogBox, "Run");
+    if(winstate == 1) ChangeDialogState(0);
     static char buffer[512] = { 0 };
     RayGUIDrawTextBox(10, 100, 400, 40, buffer, 100, true);
     InsDrawText("Enter the Application to Run:", dialogBox.x + 20, dialogBox.y + 30, 25, BLACK);

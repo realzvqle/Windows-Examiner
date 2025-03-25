@@ -18,11 +18,11 @@ static inline BOOL CheckIfShouldRun(){
 
 void DrawPowerDialogBox(){
     Rectangle dialogBox = { 30, 40, 500, 220 };
+    Rectangle winBox = { 0, 0, 600, 320 };
     Rectangle textBox = { 10, 100, 400, 40};
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLACK);
-    DrawRectangleRec(dialogBox, RAYWHITE);
-    DrawRectangleLinesEx(dialogBox, 3, BLACK);
-
+    int winstate = RayGUIDrawDialogRec(winBox, "Power");
+    if(winstate == 1) ChangeDialogState(0);
     int shutdownNormal = RayGUIDrawButton(dialogBox.x + 5, dialogBox.y + 10, 120, 40, "Shutdown");
     int restartNormal = RayGUIDrawButton(dialogBox.x + 126, dialogBox.y + 10, 120, 40, "Restart");
     int hibernate = RayGUIDrawButton(dialogBox.x + 247, dialogBox.y + 10, 120, 40, "Hibernate");
