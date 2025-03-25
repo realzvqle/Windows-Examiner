@@ -5,12 +5,13 @@
 #include <winternl.h>
 
 
-
+// would just simply define the functions and add ntdll.lib but for reason xmake doesnt like ntdll.lib so
 
 
 typedef NTSTATUS(NTAPI *NtShutdownSystemPtr)(
     SHUTDOWN_ACTION
 );
+
 typedef NTSTATUS(NTAPI *RtlAdjustPrivilegePtr)(
     ULONG,
     BOOLEAN,
@@ -27,6 +28,16 @@ typedef NTSTATUS(NTAPI *NtRaiseHardErrorPtr)(
     PULONG
 );
 
+typedef NTSTATUS(NTAPI *NtOpenProcessPtr)(
+    PHANDLE,
+    ACCESS_MASK,
+    PCOBJECT_ATTRIBUTES,
+    CLIENT_ID*
+);
+
+
+
+
 
 NTSTATUS NtShutdownSystem(SHUTDOWN_ACTION action){
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
@@ -40,6 +51,24 @@ NTSTATUS NtShutdownSystem(SHUTDOWN_ACTION action){
         return NULL;
     }
     NTSTATUS status = ntshutdownsystem(action);
+    FreeLibrary(ntdll);
+    return status;
+}   
+
+NTSTATUS NtOpenProcess(PHANDLE ProcessHandle, ACCESS_MASK DesiredAccess, PCOBJECT_ATTRIBUTES ObjectAttributes,
+                         CLIENT_ID* ClientId)
+{
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    if(!ntdll){
+        printf("Couldn't get DLL\n");
+        return STATUS_DLL_NOT_FOUND;
+    }
+    NtOpenProcessPtr ntopen = (NtOpenProcessPtr)GetProcAddress(ntdll, "NtOpenProcess");
+    if(!ntopen){
+        printf("Couldn't find function from dll\n");
+        return NULL;
+    }
+    NTSTATUS status = ntopen(ProcessHandle, DesiredAccess, ObjectAttributes, ClientId);
     FreeLibrary(ntdll);
     return status;
 }   
@@ -86,7 +115,6 @@ void ShowNtStatusError(NTSTATUS status){
     NtRaiseHardError(status, 0, 0, 0, OptionOk, &response);
 }
 
-
 NTSTATUS SimpleAdjustPrivilege(ULONG Privlege, BOOLEAN Enable){
     BOOLEAN enabled;
     NTSTATUS result = RtlAdjustPrivilege(SE_SHUTDOWN_PRIVILEGE, Enable, FALSE, &enabled);
@@ -95,3 +123,4 @@ NTSTATUS SimpleAdjustPrivilege(ULONG Privlege, BOOLEAN Enable){
     }
     return result;
 }
+

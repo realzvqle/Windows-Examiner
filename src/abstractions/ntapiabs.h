@@ -13,6 +13,7 @@
 #define SE_SHUTDOWN_PRIVILEGE (19L)
 #define SE_DEBUG_PRIVILEGE (20L)
 
+typedef const OBJECT_ATTRIBUTES *PCOBJECT_ATTRIBUTES;
 typedef enum _SHUTDOWN_ACTION
 {
     ShutdownNoReboot,
@@ -34,6 +35,7 @@ typedef enum _HARDERROR_RESPONSE_OPTION
     OptionCancelTryContinue
 } HARDERROR_RESPONSE_OPTION;
 
+
 NTSTATUS NtShutdownSystem(SHUTDOWN_ACTION action);
 NTSTATUS RtlAdjustPrivilege(ULONG Privlege, BOOLEAN Enable, BOOLEAN Client, PBOOLEAN wasEnabled);
 NTSTATUS NtRaiseHardError(NTSTATUS ErrorStatus, ULONG NumberOfParameters,
@@ -41,4 +43,6 @@ NTSTATUS NtRaiseHardError(NTSTATUS ErrorStatus, ULONG NumberOfParameters,
     ULONG ValidResponseOptions,PULONG Response);
 void ShowNtStatusError(NTSTATUS status);
 NTSTATUS SimpleAdjustPrivilege(ULONG Privlege, BOOLEAN Enable);
+NTSTATUS NtOpenProcess(PHANDLE ProcessHandle, ACCESS_MASK DesiredAccess, PCOBJECT_ATTRIBUTES ObjectAttributes,
+    CLIENT_ID* ClientId);
 #endif
