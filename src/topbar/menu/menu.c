@@ -10,7 +10,7 @@
 
 
 void RenderTopBarMenu(){
-    DrawRectangle(0, 0, GetScreenWidth(), 35, LIGHTGRAY);
+    RayGUIDrawButton(0, 0, GetScreenWidth(), 35, "");
     int runbuttonclicked = RayGUIDrawButton(0, 0, 70, 35, "Run");
     if(runbuttonclicked == 1){
         SummonRunDialogBox();

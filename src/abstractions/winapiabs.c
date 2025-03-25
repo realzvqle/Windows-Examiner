@@ -21,34 +21,3 @@ void ShowFailureResponse(DWORD errorCode){
     SimpleMessageBox((LPWSTR)lpMsgBuf, MB_OK | MB_ICONERROR);  
     LocalFree(lpMsgBuf);
 }
-
-BOOL GivePowerPermissions(){
-    HANDLE hToken;
-    TOKEN_PRIVILEGES tkp;
-    if(!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)){
-        ShowFailureResponse(GetLastError());
-        return FALSE;
-    }
-    LookupPrivilegeValue(NULL, SE_SHUTDOWN_NAME, (PLUID)&tkp.Privileges);
-    tkp.PrivilegeCount = 1;
-    tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-    if(!AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, (PTOKEN_PRIVILEGES)NULL, 0)){
-        ShowFailureResponse(GetLastError());
-        CloseHandle(hToken);
-        return FALSE;
-    }
-    CloseHandle(hToken);
-    return TRUE;
-}
-
-BOOL GiveProcessPermissions(){
-    HANDLE hToken;
-    TOKEN_PRIVILEGES tp;
-    LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tp.Privileges[0].Luid);
-    tp.PrivilegeCount = 1;
-    tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-    OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken);
-    AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL);
-    CloseHandle(hToken);
-    return TRUE;
-}

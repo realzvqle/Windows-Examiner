@@ -15,4 +15,6 @@ void RayGUIInitialize();
 int RayGUIDrawList(int x, int y, int sizeX, int sizeY, char *text, int *scrollIndex, int *active);
 int RayGUIDrawDialog(int x, int y, int sizeX, int sizeY, const char* title);
 int RayGUIDrawDialogRec(Rectangle bounds, const char* title);
+void RayGUIDrawText(const char* text, int x, int y, int fontSize);
+void RayGUIDrawRectangle(int x, int y, int sizeX, int sizeY, int borderWidth, Color borderColor, Color color);
 #endif
