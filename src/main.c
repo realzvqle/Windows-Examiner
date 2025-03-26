@@ -20,7 +20,6 @@ int main(){
     WCHAR computerName[MAX_COMPUTERNAME_LENGTH + 1];
     DWORD csize = sizeof(computerName);
     GetComputerNameW(computerName, &csize);
-
     WCHAR username[UNLEN + 1];
     DWORD usize = sizeof(username);
     GetUserNameW(username, &usize);

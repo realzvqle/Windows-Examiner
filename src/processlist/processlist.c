@@ -15,7 +15,14 @@
 #include "../abstractions/ntapiabs.h"
 #include <tlhelp32.h>
 
+struct ProcessInfo {
+    DWORD pid;
+    DWORD threads;
+    DWORD parentpid;
+};
+
 #define MAX_PROCESSES 4096
+static struct ProcessInfo pinfo[MAX_PROCESSES];
 static const char* processlist[MAX_PROCESSES];
 static int active;
 static int scrollindex;
@@ -30,8 +37,11 @@ static void PrintProcessInfo(){
         do {
             char* namecstr = WCharToChar(entry.szExeFile);
             char temp[1024];
-            sprintf(temp, TEXT("%s-%lu"), namecstr, entry.th32ProcessID);
+            sprintf(temp, TEXT("%s"), namecstr);
             processlist[index] = _strdup(temp);
+            pinfo[index].pid = entry.th32ProcessID;
+            pinfo[index].parentpid = entry.th32ParentProcessID;
+            pinfo[index].threads = entry.cntThreads;
             index++;
             DeallocateMemory(namecstr);
         } while(Process32NextW(hSnapshot, &entry));
@@ -46,15 +56,14 @@ static inline void UpdateProcessList(){
 }
 
 static inline void KillProcess(){
-    int count = 0;
-    const char** item = RayGUITextSplit(processlist[active], '-', &count, NULL);
-    int pid = atoi(item[1]);
-    if(!pid) return;
+    int result = SimpleMessageBox(L"Are you sure you want to kill this process?", 
+        MB_YESNO | MB_ICONQUESTION);
+    if(result == IDNO) return;
 
     HANDLE hProcess = NULL;
     OBJECT_ATTRIBUTES obj = {0};
     CLIENT_ID client = {0};
-    client.UniqueProcess = (HANDLE)pid;
+    client.UniqueProcess = (HANDLE)pinfo[active].pid;
     client.UniqueThread = 0;
     NTSTATUS status = NtOpenProcess(&hProcess, MAXIMUM_ALLOWED, &obj, &client);
     if(!NT_SUCCESS(status)){
@@ -66,15 +75,10 @@ static inline void KillProcess(){
 }
 
 static inline void SuspendProcess(){
-    int count = 0;
-    const char** item = RayGUITextSplit(processlist[active], '-', &count, NULL);
-    int pid = atoi(item[1]);
-    if(!pid) return;
-
     HANDLE hProcess = NULL;
     OBJECT_ATTRIBUTES obj = {0};
     CLIENT_ID client = {0};
-    client.UniqueProcess = (HANDLE)pid;
+    client.UniqueProcess = (HANDLE)pinfo[active].pid;
     client.UniqueThread = 0;
     NTSTATUS status = NtOpenProcess(&hProcess, MAXIMUM_ALLOWED, &obj, &client);
     if(!NT_SUCCESS(status)){
@@ -82,22 +86,18 @@ static inline void SuspendProcess(){
         return;
     }
     NtSuspendProcess(hProcess);
-    char temp[1024];
-    sprintf(temp, "(Suspended)%s", processlist[active]);
-    processlist[index] = _strdup(temp);
+    // char temp[1024];
+    // sprintf(temp, "(Suspended)%s", processlist[active]);
+    // processlist[index] = _strdup(temp);
     CloseHandle(hProcess);
 }
 
 static inline void ResumeProcess(){
-    int count = 0;
-    const char** item = RayGUITextSplit(processlist[active], '-', &count, NULL);
-    int pid = atoi(item[1]);
-    if(!pid) return;
 
     HANDLE hProcess = NULL;
     OBJECT_ATTRIBUTES obj = {0};
     CLIENT_ID client = {0};
-    client.UniqueProcess = (HANDLE)pid;
+    client.UniqueProcess = (HANDLE)pinfo[active].pid;
     client.UniqueThread = 0;
     NTSTATUS status = NtOpenProcess(&hProcess, MAXIMUM_ALLOWED, &obj, &client);
     if(!NT_SUCCESS(status)){
@@ -110,6 +110,48 @@ static inline void ResumeProcess(){
     // processlist[index] = _strdup(temp);
     CloseHandle(hProcess);
 }
+
+static inline void ProcessKeyBinds(){
+    if(IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)){
+        if(processlist[active] == NULL) return;
+        switch(GetKeyPressed()){
+            case KEY_Q:
+                SuspendProcess();
+                break;
+            case KEY_W:
+                KillProcess();
+                break;
+            case KEY_E:
+                ResumeProcess();
+                break;
+        }
+    }
+}
+
+static inline void ShowProcessInfo(){
+    const int infodiasizey = 202; 
+    RayGUIDrawDialog(GetMouseX(), GetMouseY(), 500, infodiasizey, processlist[focus]);
+    char tempname[1024];
+    sprintf(tempname, "Process Name: %s", processlist[focus]);
+    RayGUIDrawText(tempname, GetMouseX() + 0, GetMouseY() + 22, 20);
+    char temppid[1024];
+    sprintf(temppid, "Process ID: %lu", pinfo[focus].pid);
+    RayGUIDrawText(temppid, GetMouseX() + 0, GetMouseY() + 42, 20);
+    char tempcntthread[1024];
+    sprintf(tempcntthread, "Amount of Threads: %lu", pinfo[focus].threads);
+    RayGUIDrawText(tempcntthread, GetMouseX() + 0, GetMouseY() + 62, 20);
+    char tempcntusage[1024];
+    sprintf(tempcntusage, "Parent Process PID: %lu", pinfo[focus].parentpid);
+    RayGUIDrawText(tempcntusage, GetMouseX() + 0, GetMouseY() + 82, 20);
+
+    RayGUIDrawText("Click on it and Press Shift+W to Terminate This Process", GetMouseX() + 0, 
+                        GetMouseY() + (infodiasizey - 62), 20);
+    RayGUIDrawText("Click on it and Press Shift+Q to Suspend This Process", GetMouseX() + 0, 
+                        GetMouseY() + (infodiasizey - 42), 20);
+    RayGUIDrawText("Click on it and Press Shift+E to Resume This Process", GetMouseX() + 0, 
+                        GetMouseY() + (infodiasizey - 22), 20);
+}
+
 
 void RenderProcessList(){
     static bool init = false;
@@ -126,21 +168,10 @@ void RenderProcessList(){
     }
     int r = RayGUIDrawListEx(0, 35, (float)GetScreenWidth(), (float)GetScreenHeight() - 35, 
     (const char **)processlist, index,&scrollindex, &focus, &active);
-    if(IsKeyPressed('W')){
-        if(processlist[active] == NULL) return;
-        int result = SimpleMessageBox(L"Are you sure you want to kill this process?", 
-            MB_YESNO | MB_ICONQUESTION);
-        if(result == IDNO) return;
-        KillProcess();
-    }
-    if(IsKeyPressed('Q')){
-        if(processlist[active] == NULL) return;
-        SuspendProcess();
-    }
-    if(IsKeyPressed('E')){
-        if(processlist[active] == NULL) return;
-        ResumeProcess();
-    }
+
+    
+    ProcessKeyBinds();
+    ShowProcessInfo();
 }
 
 
