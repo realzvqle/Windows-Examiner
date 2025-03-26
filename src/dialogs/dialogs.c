@@ -1,4 +1,5 @@
 #include "dialogs.h"
+#include "misc/misc.h"
 #include "power/power.h"
 #include "run/run.h"
 #include <stdint.h>
@@ -26,6 +27,9 @@ void DrawAllDialogs(){
             break;
         case 2:
             DrawPowerDialogBox();
+            break;
+        case 3:
+            DrawMiscDialogBox();
             break;
         default:
             currentdialog = 0;

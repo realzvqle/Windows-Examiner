@@ -19,7 +19,6 @@ static inline BOOL CheckIfShouldRun(){
 void DrawPowerDialogBox(){
     Rectangle dialogBox = { 30, 40, 500, 220 };
     Rectangle winBox = { 0, 0, 600, 320 };
-    Rectangle textBox = { 10, 100, 400, 40};
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLACK);
     int winstate = RayGUIDrawDialogRec(winBox, "Power");
     if(winstate == 1) ChangeDialogState(0);

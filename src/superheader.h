@@ -10,6 +10,8 @@
 #include <wchar.h>
 #include <stdlib.h>
 
+#define VERSIONA "0.2 Prerelease"
+#define VERSIONW L"0.2 Prerelease"
 
 
 #endif
