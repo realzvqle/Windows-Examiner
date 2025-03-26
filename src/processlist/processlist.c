@@ -129,6 +129,7 @@ static inline void ProcessKeyBinds(){
 }
 
 static inline void ShowProcessInfo(){
+    if(processlist[focus] == NULL) return;
     const int infodiasizey = 202; 
     RayGUIDrawDialog(GetMouseX(), GetMouseY(), 500, infodiasizey, processlist[focus]);
     char tempname[1024];
