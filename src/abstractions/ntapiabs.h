@@ -35,14 +35,18 @@ typedef enum _HARDERROR_RESPONSE_OPTION
     OptionCancelTryContinue
 } HARDERROR_RESPONSE_OPTION;
 
-
+void NtAbstractionInitialize();
+void NtAbstractionClose();
 NTSTATUS NtShutdownSystem(SHUTDOWN_ACTION action);
 NTSTATUS RtlAdjustPrivilege(ULONG Privlege, BOOLEAN Enable, BOOLEAN Client, PBOOLEAN wasEnabled);
 NTSTATUS NtRaiseHardError(NTSTATUS ErrorStatus, ULONG NumberOfParameters,
     ULONG UnicodeStringParameterMask,PULONG_PTR Parameters, 
     ULONG ValidResponseOptions,PULONG Response);
-void ShowNtStatusError(NTSTATUS status);
-NTSTATUS SimpleAdjustPrivilege(ULONG Privlege, BOOLEAN Enable);
 NTSTATUS NtOpenProcess(PHANDLE ProcessHandle, ACCESS_MASK DesiredAccess, PCOBJECT_ATTRIBUTES ObjectAttributes,
     CLIENT_ID* ClientId);
+NTSTATUS NtSuspendProcess(HANDLE hProcess);
+NTSTATUS NtResumeProcess(HANDLE hProcess);
+void ShowNtStatusError(NTSTATUS status);
+NTSTATUS SimpleAdjustPrivilege(ULONG Privlege, BOOLEAN Enable);
+
 #endif

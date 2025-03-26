@@ -1,6 +1,7 @@
 #include "processlist.h"
 #include <Psapi.h>
 #include <errhandlingapi.h>
+#include <handleapi.h>
 #include <minwindef.h>
 #include <string.h>
 #include <winbase.h>
@@ -12,64 +13,41 @@
 #include <winuser.h>
 #include "../abstractions/rayguiabs.h"
 #include "../abstractions/ntapiabs.h"
+#include <tlhelp32.h>
 
 #define MAX_PROCESSES 4096
-#define MAX_ENTRY_SIZE 256
-static CHAR newarr[MAX_PROCESSES][MAX_ENTRY_SIZE];
-static const char* processlistrender[MAX_PROCESSES];
+static const char* processlist[MAX_PROCESSES];
 static int active;
 static int scrollindex;
 static int focus;
-static bool initprocesslister = false;
 static int index = 0;
 
-static void PrintProcessInfo(DWORD pid){
-    if (index >= MAX_PROCESSES) return;
-    CHAR szProcessName[MAX_PATH] = TEXT("<unknown>");
-    HANDLE hProcess = NULL;
-    OBJECT_ATTRIBUTES obj = {0};
-    CLIENT_ID client = {0};
-    client.UniqueProcess = (HANDLE)pid;
-    client.UniqueThread = 0;
-    NTSTATUS status = NtOpenProcess(&hProcess, MAXIMUM_ALLOWED, &obj, &client);
-    if(!NT_SUCCESS(status)){
-        //ShowNtStatusError(status);
-        return;
+static void PrintProcessInfo(){
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    PROCESSENTRY32W entry = {0};
+    entry.dwSize = sizeof(PROCESSENTRY32W);
+    if(Process32FirstW(hSnapshot, &entry)){
+        do {
+            char* namecstr = WCharToChar(entry.szExeFile);
+            char temp[1024];
+            sprintf(temp, TEXT("%s-%lu"), namecstr, entry.th32ProcessID);
+            processlist[index] = _strdup(temp);
+            index++;
+            DeallocateMemory(namecstr);
+        } while(Process32NextW(hSnapshot, &entry));
     }
-    
-    HMODULE hMod;
-    DWORD cbNeeded;
-    if(EnumProcessModulesEx(hProcess, &hMod, sizeof(hMod), &cbNeeded, LIST_MODULES_ALL)){
-        GetModuleBaseName(hProcess, hMod, szProcessName, sizeof(szProcessName) / sizeof(TCHAR));
-    } else return;
-    
-    sprintf(newarr[index], TEXT("%s-%lu"), szProcessName, pid);
-    index++;
-    CloseHandle(hProcess);
+    CloseHandle(hSnapshot);
 }
 
 
 static inline void UpdateProcessList(){
     index = 0;
-    DWORD aProcesses[MAX_PROCESSES], cbNeeded, cProcesses;
-    if(!EnumProcesses(aProcesses, sizeof(aProcesses), &cbNeeded)){
-        ShowFailureResponse(GetLastError());
-        return;
-    }
-    
-    cProcesses = cbNeeded / sizeof(DWORD);
-
-    for(int i = 0; i < cProcesses; i++){
-        if(aProcesses[i] != 0){
-            PrintProcessInfo(aProcesses[i]);
-        }
-    }
+    PrintProcessInfo();
 }
 
-static inline void KillProcess(int index){
+static inline void KillProcess(){
     int count = 0;
-    const char** item = RayGUITextSplit(processlistrender[active], '-', &count, NULL);
-
+    const char** item = RayGUITextSplit(processlist[active], '-', &count, NULL);
     int pid = atoi(item[1]);
     if(!pid) return;
 
@@ -87,6 +65,51 @@ static inline void KillProcess(int index){
     CloseHandle(hProcess);
 }
 
+static inline void SuspendProcess(){
+    int count = 0;
+    const char** item = RayGUITextSplit(processlist[active], '-', &count, NULL);
+    int pid = atoi(item[1]);
+    if(!pid) return;
+
+    HANDLE hProcess = NULL;
+    OBJECT_ATTRIBUTES obj = {0};
+    CLIENT_ID client = {0};
+    client.UniqueProcess = (HANDLE)pid;
+    client.UniqueThread = 0;
+    NTSTATUS status = NtOpenProcess(&hProcess, MAXIMUM_ALLOWED, &obj, &client);
+    if(!NT_SUCCESS(status)){
+        ShowNtStatusError(status);
+        return;
+    }
+    NtSuspendProcess(hProcess);
+    char temp[1024];
+    sprintf(temp, "(Suspended)%s", processlist[active]);
+    processlist[index] = _strdup(temp);
+    CloseHandle(hProcess);
+}
+
+static inline void ResumeProcess(){
+    int count = 0;
+    const char** item = RayGUITextSplit(processlist[active], '-', &count, NULL);
+    int pid = atoi(item[1]);
+    if(!pid) return;
+
+    HANDLE hProcess = NULL;
+    OBJECT_ATTRIBUTES obj = {0};
+    CLIENT_ID client = {0};
+    client.UniqueProcess = (HANDLE)pid;
+    client.UniqueThread = 0;
+    NTSTATUS status = NtOpenProcess(&hProcess, MAXIMUM_ALLOWED, &obj, &client);
+    if(!NT_SUCCESS(status)){
+        ShowNtStatusError(status);
+        return;
+    }
+    NtResumeProcess(hProcess);
+    // char temp[1024];
+    // sprintf(temp, "(Suspended)%s", processlist[active]);
+    // processlist[index] = _strdup(temp);
+    CloseHandle(hProcess);
+}
 
 void RenderProcessList(){
     static bool init = false;
@@ -95,28 +118,29 @@ void RenderProcessList(){
         UpdateProcessList();
         prevtime = GetTime();
         init = true;
-        initprocesslister = false;
     }
     if((GetTime() - prevtime) >= 1){
-        initprocesslister = false;
         UpdateProcessList();
         prevtime = GetTime();
-        // very unoptimized, need to be fixed later
-        for (int i = 0; i < MAX_PROCESSES && i < index; i++) {
-            processlistrender[i] = newarr[i];  
-        }
         printf("Updated!\n");
     }
     int r = RayGUIDrawListEx(0, 35, (float)GetScreenWidth(), (float)GetScreenHeight() - 35, 
-    (const char **)processlistrender, index,&scrollindex, &focus, &active);
+    (const char **)processlist, index,&scrollindex, &focus, &active);
     if(IsKeyPressed('W')){
-        if(processlistrender[active] == NULL) return;
+        if(processlist[active] == NULL) return;
         int result = SimpleMessageBox(L"Are you sure you want to kill this process?", 
             MB_YESNO | MB_ICONQUESTION);
         if(result == IDNO) return;
-        KillProcess(active);
+        KillProcess();
     }
-    //printf("\n\n%s\n\n", array);
+    if(IsKeyPressed('Q')){
+        if(processlist[active] == NULL) return;
+        SuspendProcess();
+    }
+    if(IsKeyPressed('E')){
+        if(processlist[active] == NULL) return;
+        ResumeProcess();
+    }
 }
 
 

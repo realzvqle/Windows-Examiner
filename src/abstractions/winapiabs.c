@@ -21,3 +21,25 @@ void ShowFailureResponse(DWORD errorCode){
     SimpleMessageBox((LPWSTR)lpMsgBuf, MB_OK | MB_ICONERROR);  
     LocalFree(lpMsgBuf);
 }
+
+void* AllocateMemory(size_t size) {
+    return VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+}
+
+BOOL DeallocateMemory(void* memory) {
+    return VirtualFree(memory, 0, MEM_RELEASE);
+}
+
+char* WCharToChar(WCHAR* string){
+    size_t len = wcstombs(NULL, string, 0) + 1;
+    char* cstr = (char*)AllocateMemory(len);
+    wcstombs(cstr, string, len);
+    return cstr;
+}
+
+WCHAR* CharToWChar(char* string){
+    size_t len = mbstowcs(NULL, string, 0) + 1;
+    WCHAR* wstr = (WCHAR*)AllocateMemory(len);
+    mbstowcs(wstr, string, len);
+    return wstr;
+}
